@@ -7,21 +7,21 @@ import jax
 import jax.numpy as jnp
 from jax import Array
 
+from kups.core.cell import Cell, PeriodicCell, TriclinicFrame
 from kups.core.constants import BOLTZMANN_CONSTANT
 from kups.core.data.index import Index
 from kups.core.data.table import Table
 from kups.core.lens import HasLensFields, LensField, lens
 from kups.core.propagator import CachePropagator, Propagator
 from kups.core.typing import ParticleId, SystemId
-from kups.core.unitcell import TriclinicUnitCell, UnitCell
 from kups.core.utils.jax import dataclass, jit
 from kups.md.integrators import (
     CSVRStep,
-    MinimumImageConventionFlow,
     MomentumStep,
     PositionStep,
     StochasticCellRescalingStep,
     StochasticStep,
+    WrapFlow,
     euclidean_flow,
     make_baoab_langevin_step,
     make_csvr_npt_step,
@@ -60,8 +60,8 @@ class NPTSystemData:
     time_step: Array
     temperature: Array
     thermostat_time_constant: Array
-    unitcell: UnitCell
-    unitcell_gradients: UnitCell
+    cell: Cell
+    cell_gradients: Cell
     target_pressure: Array
     pressure_coupling_time: Array
     compressibility: Array
@@ -232,7 +232,7 @@ def create_npt_system(
         label=ParticleId,
     )
 
-    unitcell = TriclinicUnitCell.from_matrix(jnp.eye(3)[None] * box_size)
+    cell = PeriodicCell(TriclinicFrame.from_matrix(jnp.eye(3)[None] * box_size))
     from kups.core.utils.jax import tree_zeros_like
 
     systems = Table.arange(
@@ -240,8 +240,8 @@ def create_npt_system(
             time_step=jnp.array([dt]),
             temperature=jnp.array([kT / BOLTZMANN_CONSTANT]),
             thermostat_time_constant=jnp.array([tau_t]),
-            unitcell=unitcell,
-            unitcell_gradients=tree_zeros_like(unitcell),
+            cell=cell,
+            cell_gradients=tree_zeros_like(cell),
             target_pressure=jnp.array([target_pressure]),
             pressure_coupling_time=jnp.array([tau_p]),
             compressibility=jnp.array([compressibility]),
@@ -368,25 +368,23 @@ class TestThermostatSteps:
 
 
 class TestBarostatAndMICSteps:
-    """Tests for StochasticCellRescalingStep and MinimumImageConventionFlow."""
+    """Tests for StochasticCellRescalingStep and WrapFlow."""
 
-    def test_unitcell_volume_updates(self):
+    def test_cell_volume_updates(self):
         state = create_npt_system(n_particles=3, box_size=5.0)
         step = StochasticCellRescalingStep(
             particles=NPTState.particles, systems=NPTState.systems
         )
 
-        initial_volume = state.systems.data.unitcell.volume
+        initial_volume = state.systems.data.cell.volume
         new_state = step(jax.random.key(42), state)
 
         assert not jnp.isclose(
-            new_state.systems.data.unitcell.volume, initial_volume, rtol=1e-8
-        ), "CRITICAL BUG: UnitCell volume did not update"
-        expected_volume = jnp.linalg.det(
-            new_state.systems.data.unitcell.lattice_vectors
-        )
+            new_state.systems.data.cell.volume, initial_volume, rtol=1e-8
+        ), "CRITICAL BUG: Cell volume did not update"
+        expected_volume = jnp.linalg.det(new_state.systems.data.cell.vectors)
         assert jnp.isclose(
-            new_state.systems.data.unitcell.volume, expected_volume, rtol=1e-6
+            new_state.systems.data.cell.volume, expected_volume, rtol=1e-6
         )
 
     def test_positions_scale_with_box(self):
@@ -396,9 +394,9 @@ class TestBarostatAndMICSteps:
         )
 
         initial_pos = state.particles.data.positions
-        initial_box = jnp.mean(jnp.diag(state.systems.data.unitcell.lattice_vectors[0]))
+        initial_box = jnp.mean(jnp.diag(state.systems.data.cell.vectors[0]))
         new_state = step(jax.random.key(42), state)
-        new_box = jnp.mean(jnp.diag(new_state.systems.data.unitcell.lattice_vectors[0]))
+        new_box = jnp.mean(jnp.diag(new_state.systems.data.cell.vectors[0]))
 
         expected_pos = initial_pos * (new_box / initial_box)
         assert jnp.allclose(new_state.particles.data.positions, expected_pos, rtol=1e-3)
@@ -411,14 +409,14 @@ class TestBarostatAndMICSteps:
             particles=NPTState.particles, systems=NPTState.systems
         )
 
-        initial_volume = state.systems.data.unitcell.volume
+        initial_volume = state.systems.data.cell.volume
         _, volumes = run_simulation(
             step,
             state,
             jax.random.key(42),
             n_equil=0,
             n_sample=10,
-            extract_fn=lambda s: s.systems.data.unitcell.volume,
+            extract_fn=lambda s: s.systems.data.cell.volume,
         )
 
         assert jnp.mean(volumes[5:]) > initial_volume * 1.01, (
@@ -427,17 +425,15 @@ class TestBarostatAndMICSteps:
 
     def test_wrapping_positions(self):
         box_size = 5.0
-        unitcell = TriclinicUnitCell.from_matrix(jnp.eye(3) * box_size)
+        cell = PeriodicCell(TriclinicFrame.from_matrix(jnp.eye(3) * box_size))
 
         @dataclass
         class TestState:
-            unitcell: UnitCell
+            cell: Cell
 
-        flow = MinimumImageConventionFlow(
-            unitcell=lambda s: s.unitcell, flow=euclidean_flow
-        )
+        flow = WrapFlow(cell=lambda s: s.cell, flow=euclidean_flow)
         new_pos = flow(
-            TestState(unitcell=unitcell),
+            TestState(cell=cell),
             jnp.array([0.1]),
             jnp.array([0.0, 0.0, 0.0]),
             jnp.array([100.0, 0.0, 0.0]),
@@ -642,7 +638,7 @@ class TestCSVRNPTPhysics:
             jax.random.key(123),
             n_equil=50,
             n_sample=50,
-            extract_fn=lambda s: s.systems.data.unitcell.volume,
+            extract_fn=lambda s: s.systems.data.cell.volume,
         )
 
         mean_vol, std_vol = jnp.mean(volumes), jnp.std(volumes)
@@ -827,19 +823,17 @@ def test_stress_matches_ase():
         lj_parameters=lj,
     )
     sl = identity_lens(S)
-    pot = make_lennard_jones_from_state(
-        sl, compute_position_and_unitcell_gradients=True
-    )
+    pot = make_lennard_jones_from_state(sl, compute_position_and_cell_gradients=True)
 
     # Evaluate potential and write gradients back into state
     result = pot(state)
     pos_grad = result.data.gradients.positions.data
-    uc_grad = result.data.gradients.unitcell.data
+    cell_grad = result.data.gradients.cell.data
 
     import dataclasses
 
     p_with_grad = p.set_data(dataclasses.replace(p.data, position_gradients=pos_grad))
-    s_with_grad = s.set_data(dataclasses.replace(s.data, unitcell_gradients=uc_grad))
+    s_with_grad = s.set_data(dataclasses.replace(s.data, cell_gradients=cell_grad))
 
     kups_stress = np.asarray(
         stress_via_virial_theorem(p_with_grad, s_with_grad).data[0]

@@ -13,8 +13,8 @@ from typing import Any, Protocol, Union, runtime_checkable
 import numpy as np
 from jax import Array
 
+from kups.core.cell import Cell
 from kups.core.data import Index, Table
-from kups.core.unitcell import UnitCell
 
 DType = np.dtype
 type PyTree = Any
@@ -260,15 +260,19 @@ class HasLogActivity(Protocol):
 
 
 @runtime_checkable
-class HasUnitCell(Protocol):
-    """Protocol for entities with unit cell parameters.
+class HasCell[P: tuple[bool, bool, bool]](Protocol):
+    """Protocol for entities with cell parameters.
+
+    Generic over the periodicity literal ``P``, mirroring
+    [Cell][kups.core.cell.Cell]. Narrowing example:
+    ``HasCell[Periodic3D]`` for systems requiring fully-periodic cells.
 
     Attributes:
-        unitcell: Unit cell parameters for each system (lattice vectors, volume).
+        cell: Cell parameters for each system.
     """
 
     @property
-    def unitcell(self) -> UnitCell: ...
+    def cell(self) -> Cell[P]: ...
 
 
 @runtime_checkable

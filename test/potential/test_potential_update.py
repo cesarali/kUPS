@@ -17,6 +17,7 @@ import pytest
 from jax import Array
 
 from kups.core.capacity import FixedCapacity
+from kups.core.cell import Cell, PeriodicCell, TriclinicFrame
 from kups.core.data import WithCache, WithIndices
 from kups.core.data.index import Index
 from kups.core.data.table import Table
@@ -30,7 +31,6 @@ from kups.core.typing import (
     ParticleId,
     SystemId,
 )
-from kups.core.unitcell import TriclinicUnitCell, UnitCell
 from kups.core.utils.jax import dataclass
 from kups.potential.classical.cosine_angle import (
     CosineAngleParameters,
@@ -86,7 +86,7 @@ class ParticleData:
 
 @dataclass
 class SystemData:
-    unitcell: UnitCell
+    cell: Cell
     cutoff: Array
 
 
@@ -201,8 +201,8 @@ def _build_common(positions: Array | None = None) -> _CommonParts:
         positions = _INITIAL_POSITIONS
     system_ids = jnp.zeros(N_PARTICLES, dtype=int)
     particles = _make_particles(positions, system_ids)
-    unitcell = TriclinicUnitCell.from_matrix(jnp.eye(3)[None] * 10.0)
-    systems = Table.arange(SystemData(unitcell, jnp.array([5.0])), label=SystemId)
+    cell = PeriodicCell(TriclinicFrame.from_matrix(jnp.eye(3)[None] * 10.0))
+    systems = Table.arange(SystemData(cell, jnp.array([5.0])), label=SystemId)
     pidx = particles.keys
     ns = N_SPECIES
     return _CommonParts(

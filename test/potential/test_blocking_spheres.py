@@ -92,7 +92,7 @@ class TestBlockingSpheresEnergy:
         )
 
     def test_energy_scenarios(self):
-        """Merged: inside + outside + boundary + multiple + no_edges + with_unit_cell."""
+        """Merged: inside + outside + boundary + multiple + no_edges + with_cell."""
         energy_fn = _jit_blocking_spheres_energy
 
         # Inside sphere -> infinite energy
@@ -100,7 +100,7 @@ class TestBlockingSpheresEnergy:
         inp_in = BlockingSpheresPotentialInput(
             parameters=self.parameters,
             particles=self.particles,
-            unitcell=None,
+            cell=None,
             edges=edges_in,
         )
         result_in = energy_fn(inp_in)
@@ -111,7 +111,7 @@ class TestBlockingSpheresEnergy:
         inp_out = BlockingSpheresPotentialInput(
             parameters=self.parameters,
             particles=self.particles,
-            unitcell=None,
+            cell=None,
             edges=edges_out,
         )
         result_out = energy_fn(inp_out)
@@ -123,7 +123,7 @@ class TestBlockingSpheresEnergy:
         inp_bnd = BlockingSpheresPotentialInput(
             parameters=self.parameters,
             particles=boundary_particles,
-            unitcell=None,
+            cell=None,
             edges=edges_bnd,
         )
         result_bnd = energy_fn(inp_bnd)
@@ -137,7 +137,7 @@ class TestBlockingSpheresEnergy:
         inp_multi = BlockingSpheresPotentialInput(
             parameters=self.parameters,
             particles=self.particles,
-            unitcell=None,
+            cell=None,
             edges=edges_multi,
         )
         result_multi = energy_fn(inp_multi)
@@ -148,23 +148,23 @@ class TestBlockingSpheresEnergy:
         inp_none = BlockingSpheresPotentialInput(
             parameters=self.parameters,
             particles=self.particles,
-            unitcell=None,
+            cell=None,
             edges=edges_none,
         )
         result_none = energy_fn(inp_none)
         assert result_none.data.data[0] == 0.0
 
-        # With unit cell (still inside) -> infinite
-        uc_particles = _make_particles(jnp.array([[0.5, 0.0, 0.0]]), [0], [0])
-        edges_uc = create_test_edges(uc_particles, [[0, 0]])
-        inp_uc = BlockingSpheresPotentialInput(
+        # With cell (still inside) -> infinite
+        cell_particles = _make_particles(jnp.array([[0.5, 0.0, 0.0]]), [0], [0])
+        edges_cell = create_test_edges(cell_particles, [[0, 0]])
+        inp_cell = BlockingSpheresPotentialInput(
             parameters=self.parameters,
-            particles=uc_particles,
-            unitcell=None,
-            edges=edges_uc,
+            particles=cell_particles,
+            cell=None,
+            edges=edges_cell,
         )
-        result_uc = energy_fn(inp_uc)
-        assert jnp.isinf(result_uc.data.data[0])
+        result_cell = energy_fn(inp_cell)
+        assert jnp.isinf(result_cell.data.data[0])
 
     def test_edge_cases(self):
         """Merged: zero_radius + negative_radius + very_large_distances."""
@@ -183,7 +183,7 @@ class TestBlockingSpheresEnergy:
         inp_z = BlockingSpheresPotentialInput(
             parameters=params_zero,
             particles=particles_z,
-            unitcell=None,
+            cell=None,
             edges=edges_z,
         )
         result_z = energy_fn(inp_z)
@@ -201,7 +201,7 @@ class TestBlockingSpheresEnergy:
         inp_n = BlockingSpheresPotentialInput(
             parameters=params_neg,
             particles=particles_n,
-            unitcell=None,
+            cell=None,
             edges=edges_n,
         )
         result_n = energy_fn(inp_n)
@@ -220,7 +220,7 @@ class TestBlockingSpheresEnergy:
         inp_f = BlockingSpheresPotentialInput(
             parameters=params_far,
             particles=particles_f,
-            unitcell=None,
+            cell=None,
             edges=edges_f,
         )
         result_f = energy_fn(inp_f)
@@ -242,7 +242,7 @@ class TestBlockingSpheresEnergy:
             inp = BlockingSpheresPotentialInput(
                 parameters=parameters,
                 particles=particles,
-                unitcell=None,
+                cell=None,
                 edges=edges,
             )
             return blocking_spheres_energy(inp).data.data[0]
@@ -269,7 +269,7 @@ class TestBlockingSpheresEnergy:
         inp = BlockingSpheresPotentialInput(
             parameters=parameters,
             particles=particles,
-            unitcell=None,
+            cell=None,
             edges=edges,
         )
         result = blocking_spheres_energy(inp)

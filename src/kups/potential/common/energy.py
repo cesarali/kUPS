@@ -24,6 +24,7 @@ import jax
 import jax.numpy as jnp
 from jax import Array
 
+from kups.core.cell import Cell
 from kups.core.data import Index, Table
 from kups.core.lens import Lens, View
 from kups.core.patch import ComposedPatch, IdPatch, IndexLensPatch, Patch, WithPatch
@@ -36,7 +37,6 @@ from kups.core.potential import (
     empty_patch_idx_view,
 )
 from kups.core.typing import HasPositionsAndSystemIndex, ParticleId, SystemId
-from kups.core.unitcell import UnitCell
 from kups.core.utils.jax import (
     dataclass,
     field,
@@ -47,25 +47,25 @@ from kups.core.utils.jax import (
 )
 
 
-class IsStateWithParticlesAndUnitCell(Protocol):
+class IsStateWithParticlesAndCell(Protocol):
     @property
     def particles(self) -> Table[ParticleId, HasPositionsAndSystemIndex]: ...
     @property
-    def systems(self) -> Table[SystemId, UnitCell]: ...
+    def systems(self) -> Table[SystemId, Cell]: ...
 
 
-class PositionAndUnitCell(NamedTuple):
+class PositionAndCell(NamedTuple):
     positions: Table[ParticleId, Array]
-    unitcell: Table[SystemId, UnitCell]
+    cell: Table[SystemId, Cell]
 
 
 @no_type_check
-def position_and_unitcell_idx_view(
-    state: IsStateWithParticlesAndUnitCell,
-) -> PotentialOut[PositionAndUnitCell, EmptyType]:
+def position_and_cell_idx_view(
+    state: IsStateWithParticlesAndCell,
+) -> PotentialOut[PositionAndCell, EmptyType]:
     return PotentialOut(
         empty_patch_idx_view(state).total_energies,
-        PositionAndUnitCell(state.particles.data.system, Index.new(state.systems.keys)),
+        PositionAndCell(state.particles.data.system, Index.new(state.systems.keys)),
         EMPTY,
     )
 

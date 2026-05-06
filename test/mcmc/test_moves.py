@@ -9,6 +9,7 @@ import pytest
 from jax import Array
 
 from kups.core.capacity import CapacityError, LensCapacity
+from kups.core.cell import Cell, PeriodicCell, TriclinicFrame
 from kups.core.data import WithIndices
 from kups.core.data.buffered import Buffered, system_view
 from kups.core.data.index import Index
@@ -16,7 +17,6 @@ from kups.core.data.table import Table
 from kups.core.lens import bind, lens
 from kups.core.result import as_result_function
 from kups.core.typing import GroupId, MotifId, ParticleId, SystemId
-from kups.core.unitcell import TriclinicUnitCell, UnitCell
 from kups.core.utils.jax import dataclass, key_chain
 from kups.core.utils.position import center_of_mass, to_relative_positions
 from kups.mcmc.moves import (
@@ -82,10 +82,10 @@ class PositionSystemData:
 
 
 @dataclass
-class UnitCellData:
-    """System data with unit cell."""
+class CellData:
+    """System data with cell."""
 
-    unitcell: UnitCell
+    cell: Cell
 
 
 @dataclass
@@ -229,9 +229,9 @@ class TestRandomRotateGroups:
         )
 
     @staticmethod
-    def _make_systems(unitcell):
-        """Build Table systems from a UnitCell."""
-        return Table.arange(UnitCellData(unitcell=unitcell), label=SystemId)
+    def _make_systems(cell):
+        """Build Table systems from a Cell."""
+        return Table.arange(CellData(cell=cell), label=SystemId)
 
     @classmethod
     def setup_class(cls):
@@ -239,8 +239,10 @@ class TestRandomRotateGroups:
         cls.n_particles_per_sys = 6
 
         lattice_vecs = jnp.array([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]])
-        cls.unitcell = TriclinicUnitCell.from_matrix(
-            jnp.broadcast_to(lattice_vecs, (cls.n_sys, 3, 3))
+        cls.cell = PeriodicCell(
+            TriclinicFrame.from_matrix(
+                jnp.broadcast_to(lattice_vecs, (cls.n_sys, 3, 3))
+            )
         )
         cls.jit_rotate = staticmethod(jax.jit(random_rotate_groups))
 
@@ -273,7 +275,7 @@ class TestRandomRotateGroups:
             cls.system_ids,
         )
         cls.particles = cls._make_particles(cls.positions, cls.system_ids, cls.n_sys)
-        cls.systems = cls._make_systems(cls.unitcell)
+        cls.systems = cls._make_systems(cls.cell)
 
     def _make_mass_particles(self, positions):
         """Build GroupSystemDataWithMass Table from positions."""
@@ -301,23 +303,23 @@ class TestRandomRotateGroups:
         # Zero step width preserves relative positions (identity rotation)
         zero_sw = jnp.zeros(self.n_sys)
         particles_m = self._make_mass_particles(self.positions)
-        orig_com = center_of_mass(particles_m, self.unitcell)
-        orig_rel = to_relative_positions(particles_m, self.unitcell, orig_com)
+        orig_com = center_of_mass(particles_m, self.cell)
+        orig_rel = to_relative_positions(particles_m, self.cell, orig_com)
         rot_zero = self.jit_rotate(
             jax.random.key(1), self.particles, self.systems, zero_sw
         )
         rot_m = self._make_mass_particles(rot_zero)
-        rot_com = center_of_mass(rot_m, self.unitcell)
-        rot_rel = to_relative_positions(rot_m, self.unitcell, rot_com)
+        rot_com = center_of_mass(rot_m, self.cell)
+        rot_rel = to_relative_positions(rot_m, self.cell, rot_com)
         npt.assert_allclose(orig_rel, rot_rel, atol=1e-10)
 
         # COM preservation with non-zero step width
-        com_before = center_of_mass(self.particles, self.unitcell)
+        com_before = center_of_mass(self.particles, self.cell)
         rot2 = self.jit_rotate(
             jax.random.key(2), self.particles, self.systems, self.step_width
         )
         com_after = center_of_mass(
-            self._make_particles(rot2, self.system_ids, self.n_sys), self.unitcell
+            self._make_particles(rot2, self.system_ids, self.n_sys), self.cell
         )
         npt.assert_allclose(com_after, com_before)
 
@@ -326,8 +328,8 @@ class TestRandomRotateGroups:
             jax.random.key(3), self.particles, self.systems, self.step_width
         )
         rot3_m = self._make_mass_particles(rot3)
-        rot3_com = center_of_mass(rot3_m, self.unitcell)
-        rot3_rel = to_relative_positions(rot3_m, self.unitcell, rot3_com)
+        rot3_com = center_of_mass(rot3_m, self.cell)
+        rot3_rel = to_relative_positions(rot3_m, self.cell, rot3_com)
         npt.assert_allclose(
             jnp.linalg.norm(orig_rel, axis=1),
             jnp.linalg.norm(rot3_rel, axis=1),
@@ -374,14 +376,16 @@ class TestRandomRotateGroups:
         assert rot_lg.shape == self.positions.shape
         assert jnp.all(jnp.isfinite(rot_lg))
 
-        # Non-cubic (hexagonal) unit cell
+        # Non-cubic (hexagonal) cell
         lattice_vecs = jnp.array(
             [[1.0, 0.0, 0.0], [0.5, jnp.sqrt(3) / 2, 0.0], [0.0, 0.0, 1.0]]
         )
-        hex_uc = TriclinicUnitCell.from_matrix(
-            jnp.broadcast_to(lattice_vecs, (self.n_sys, 3, 3))
+        hex_cell = PeriodicCell(
+            TriclinicFrame.from_matrix(
+                jnp.broadcast_to(lattice_vecs, (self.n_sys, 3, 3))
+            )
         )
-        hex_sys = self._make_systems(hex_uc)
+        hex_sys = self._make_systems(hex_cell)
         rot_hex = self.jit_rotate(
             jax.random.key(10), self.particles, hex_sys, self.step_width
         )
@@ -392,8 +396,10 @@ class TestRandomRotateGroups:
     def test_single_system(self):
         key = jax.random.key(8)
         n_particles = 4
-        single_unitcell = TriclinicUnitCell.from_matrix(
-            jnp.array([[[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]]]),
+        single_cell = PeriodicCell(
+            TriclinicFrame.from_matrix(
+                jnp.array([[[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]]]),
+            )
         )
         single_positions = jnp.array(
             [[0.5, 0.5, 0.5], [0.51, 0.5, 0.5], [0.5, 0.51, 0.5], [0.5, 0.5, 0.51]]
@@ -401,7 +407,7 @@ class TestRandomRotateGroups:
         single_system_ids = jnp.zeros(n_particles, dtype=int)
         single_step_width = jnp.array([0.5])
         single_particles = self._make_particles(single_positions, single_system_ids, 1)
-        single_systems = self._make_systems(single_unitcell)
+        single_systems = self._make_systems(single_cell)
         rotated = self.jit_rotate(
             key, single_particles, single_systems, single_step_width
         )
@@ -412,7 +418,7 @@ class TestRandomRotateGroups:
 
 class TestTranslateGroups:
     @staticmethod
-    def _call(jit_fn, translations, positions, unitcell, system_ids):
+    def _call(jit_fn, translations, positions, cell, system_ids):
         """Wrap raw arrays into Table types and call translate_groups."""
         n_sys = translations.shape[0]
         trans = Table.arange(translations, label=SystemId)
@@ -423,7 +429,7 @@ class TestTranslateGroups:
             ),
             label=ParticleId,
         )
-        systems = Table.arange(UnitCellData(unitcell=unitcell), label=SystemId)
+        systems = Table.arange(CellData(cell=cell), label=SystemId)
         return jit_fn(trans, particles, systems)
 
     @classmethod
@@ -431,8 +437,10 @@ class TestTranslateGroups:
         cls.n_sys = 3
         cls.n_particles_per_sys = 4
         lattice_vecs = jnp.array([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]])
-        cls.unitcell = TriclinicUnitCell.from_matrix(
-            jnp.broadcast_to(lattice_vecs, (cls.n_sys, 3, 3))
+        cls.cell = PeriodicCell(
+            TriclinicFrame.from_matrix(
+                jnp.broadcast_to(lattice_vecs, (cls.n_sys, 3, 3))
+            )
         )
         cls.jit_translate = staticmethod(jax.jit(translate_groups))
         cls.positions = jnp.array(
@@ -460,12 +468,12 @@ class TestTranslateGroups:
             ]
         )
 
-    def _assert_per_system(self, translations, positions=None, unitcell=None):
+    def _assert_per_system(self, translations, positions=None, cell=None):
         """Translate and verify per-system expected positions (cubic wrap)."""
         pos = positions if positions is not None else self.positions
-        uc = unitcell if unitcell is not None else self.unitcell
+        selected_cell = cell if cell is not None else self.cell
         translated = self._call(
-            self.jit_translate, translations, pos, uc, self.system_ids
+            self.jit_translate, translations, pos, selected_cell, self.system_ids
         )
         for sys_id in range(self.n_sys):
             mask = self.system_ids == sys_id
@@ -484,7 +492,7 @@ class TestTranslateGroups:
         # Zero translation
         zero = jnp.zeros((self.n_sys, 3))
         t_zero = self._call(
-            self.jit_translate, zero, self.positions, self.unitcell, self.system_ids
+            self.jit_translate, zero, self.positions, self.cell, self.system_ids
         )
         npt.assert_allclose(t_zero, (self.positions + 0.5) % 1.0 - 0.5, atol=1e-15)
 
@@ -512,7 +520,7 @@ class TestTranslateGroups:
         # Exact position verification (precise per-particle check)
         precise = jnp.array([[0.2, 0.0, 0.0], [0.0, 0.25, 0.0], [0.0, 0.0, 0.15]])
         t_precise = self._call(
-            self.jit_translate, precise, self.positions, self.unitcell, self.system_ids
+            self.jit_translate, precise, self.positions, self.cell, self.system_ids
         )
         for i, (pos, sid) in enumerate(zip(self.positions, self.system_ids)):
             expected = (pos + precise[sid] + 0.5) % 1.0 - 0.5
@@ -524,7 +532,7 @@ class TestTranslateGroups:
             self.jit_translate,
             rel_trans,
             self.positions,
-            self.unitcell,
+            self.cell,
             self.system_ids,
         )
         for sys_id in range(self.n_sys):
@@ -540,20 +548,22 @@ class TestTranslateGroups:
                         _wrap(orig[j] - orig[i]), _wrap(trans[j] - trans[i]), atol=1e-10
                     )
 
-        # Non-cubic (hexagonal) unit cell
+        # Non-cubic (hexagonal) cell
         lattice_vecs = jnp.array(
             [[1.0, 0.0, 0.0], [0.5, jnp.sqrt(3) / 2, 0.0], [0.0, 0.0, 1.0]]
         )
-        hex_uc = TriclinicUnitCell.from_matrix(
-            jnp.broadcast_to(lattice_vecs, (self.n_sys, 3, 3))
+        hex_cell = PeriodicCell(
+            TriclinicFrame.from_matrix(
+                jnp.broadcast_to(lattice_vecs, (self.n_sys, 3, 3))
+            )
         )
         small = jnp.array([[0.1, 0.0, 0.0], [0.0, 0.1, 0.0], [0.0, 0.0, 0.1]])
         t_hex = self._call(
-            self.jit_translate, small, self.positions, hex_uc, self.system_ids
+            self.jit_translate, small, self.positions, hex_cell, self.system_ids
         )
         for sys_id in range(self.n_sys):
             mask = self.system_ids == sys_id
-            expected = hex_uc[sys_id].wrap(self.positions[mask] + small[sys_id])
+            expected = hex_cell[sys_id].wrap(self.positions[mask] + small[sys_id])
             npt.assert_allclose(t_hex[mask], expected, atol=1e-10)
 
     def test_consistency_with_manual_implementation(self):
@@ -567,7 +577,7 @@ class TestTranslateGroups:
             self.jit_translate,
             self.translations,
             self.positions,
-            self.unitcell,
+            self.cell,
             self.system_ids,
         )
         npt.assert_allclose(function_result, manual_result, atol=1e-15)
@@ -601,7 +611,7 @@ class TestTranslateGroups:
             self.jit_translate,
             boundary_translations,
             boundary_positions,
-            self.unitcell,
+            self.cell,
             boundary_system_ids,
         )
         for i, (pos, sys_id) in enumerate(zip(boundary_positions, boundary_system_ids)):
@@ -620,14 +630,14 @@ class TestTranslateGroups:
     def test_single_system(self):
         """Non-unit 2x2x2 cubic cell where Cartesian-to-fractional conversion matters."""
         lattice_vecs = 2.0 * jnp.eye(3)
-        uc = TriclinicUnitCell.from_matrix(lattice_vecs[None])
+        cell = PeriodicCell(TriclinicFrame.from_matrix(lattice_vecs[None]))
         positions = jnp.array([[0.1, 0.2, 0.3], [0.4, 0.1, 0.2]])
         system_ids = jnp.array([0, 0])
         translations = jnp.array([[0.3, 0.0, 0.0]])
         result = self._call(
-            jax.jit(translate_groups), translations, positions, uc, system_ids
+            jax.jit(translate_groups), translations, positions, cell, system_ids
         )
-        expected = uc[0].wrap(positions + translations[0])
+        expected = cell[0].wrap(positions + translations[0])
         npt.assert_allclose(result, expected, atol=1e-10)
 
 
@@ -689,7 +699,7 @@ def _make_motifs(positions, motif_ids, n_motifs, max_motif_size):
 class TestExchangeMove:
     @classmethod
     def setup_class(cls):
-        cls.systems = TriclinicUnitCell.from_matrix(jnp.eye(3))[None]
+        cls.systems = PeriodicCell(TriclinicFrame.from_matrix(jnp.eye(3)))[None]
 
         if "move" not in _exchange_move_cache:
             move_fn = jax.jit(
@@ -698,7 +708,7 @@ class TestExchangeMove:
                         positions=lambda state: state["particles"],
                         groups=lambda state: state["groups"],
                         motifs=lambda state: state["motifs"],
-                        unitcell=lambda state: Table.arange(
+                        cell=lambda state: Table.arange(
                             state["systems"], label=SystemId
                         ),
                         capacity=lambda state: state["capacity"],
@@ -1293,18 +1303,18 @@ def _exchange_state():
     )
     motif_data = _Motifs(jnp.zeros((1, 3)), _make_index(MotifId, [0], 1, max_count=1))
     motifs = Table.arange(motif_data, label=MotifParticleId)
-    uc = TriclinicUnitCell.from_matrix(jnp.eye(3)[None] * 10)
-    return particles, groups, motifs, Table.arange(uc, label=SystemId)
+    cell = PeriodicCell(TriclinicFrame.from_matrix(jnp.eye(3)[None] * 10))
+    return particles, groups, motifs, Table.arange(cell, label=SystemId)
 
 
 class TestInsertRandomMotif:
     """Tests for insert_random_motif exchange change structure."""
 
     def test_insert_random_motif(self):
-        particles, groups, motifs, uc = _exchange_state()
+        particles, groups, motifs, cell = _exchange_state()
         cap = LensCapacity(1, lens(lambda x: x, cls=int))
         result = insert_random_motif(
-            jax.random.key(0), motifs, particles, groups, uc, cap
+            jax.random.key(0), motifs, particles, groups, cell, cap
         )
         # Type checks
         assert isinstance(result, ExchangeChanges)
