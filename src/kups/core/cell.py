@@ -96,7 +96,7 @@ from __future__ import annotations
 import math
 from enum import Enum
 from functools import partial
-from typing import Any, Literal, Protocol, Self, TypeGuard
+from typing import Any, Literal, Protocol, Self, TypeGuard, overload
 
 import jax
 import jax.numpy as jnp
@@ -105,7 +105,7 @@ from jax import Array
 
 from kups.core.data import Sliceable
 from kups.core.lens import Lens, bind
-from kups.core.utils.jax import dataclass
+from kups.core.utils.jax import dataclass, field
 from kups.core.utils.math import triangular_3x3_det_and_inverse, triangular_3x3_matmul
 
 
@@ -123,6 +123,17 @@ class CoordinateSpace(Enum):
 
 type Periodic3D = tuple[Literal[True], Literal[True], Literal[True]]
 type Vacuum = tuple[Literal[False], Literal[False], Literal[False]]
+
+type SlabXY = tuple[Literal[True], Literal[True], Literal[False]]
+type SlabXZ = tuple[Literal[True], Literal[False], Literal[True]]
+type SlabYZ = tuple[Literal[False], Literal[True], Literal[True]]
+type Slab2D = SlabXY | SlabXZ | SlabYZ
+
+type WireX = tuple[Literal[True], Literal[False], Literal[False]]
+type WireY = tuple[Literal[False], Literal[True], Literal[False]]
+type WireZ = tuple[Literal[False], Literal[False], Literal[True]]
+type Wire1D = WireX | WireY | WireZ
+
 type AnyPeriodicity = tuple[bool, bool, bool]
 
 
@@ -407,24 +418,24 @@ def _wrap(
 class Cell[P: tuple[bool, bool, bool]](Sliceable):
     """A [Frame][kups.core.cell.Frame] plus per-axis boundary semantics.
 
-    Generic over the periodicity literal ``P``. Concrete subclasses pin
-    ``P`` to a literal-typed tuple via a read-only ``periodic`` property
-    so construction is runtime-honest — ``PeriodicCell(frame, ...)`` with
-    an extra periodic argument raises ``TypeError``.
+    Generic over the periodicity literal ``P`` (a length-3 tuple of
+    booleans). [PeriodicCell][kups.core.cell.PeriodicCell] and
+    [VacuumCell][kups.core.cell.VacuumCell] are subclasses that pin ``P``
+    to a literal-typed default; for slab and wire geometries, construct
+    ``Cell(frame, periodic=mask)`` directly — the literal tuple narrows
+    ``P`` to the corresponding [Slab2D][kups.core.cell.Slab2D] or
+    [Wire1D][kups.core.cell.Wire1D] alias.
 
     The cell delegates geometry queries (``volume``, ``vectors``, etc.) to
-    its frame. The boundary semantics — what ``periodic`` means, how
-    [`wrap`][kups.core.cell.Cell.wrap] interprets it,
-    [`make_supercell`][kups.core.cell.make_supercell] tiling — live on the
-    cell. See [PeriodicCell][kups.core.cell.PeriodicCell] and
-    [VacuumCell][kups.core.cell.VacuumCell] for the two interpretations.
+    its frame. Periodic-mask-aware operations
+    ([`wrap`][kups.core.cell.Cell.wrap], [`fold`][kups.core.cell.Cell.fold],
+    [`minimum_image_shifts`][kups.core.cell.Cell.minimum_image_shifts])
+    live on the cell so callers don't need to access ``cell.periodic``
+    directly.
     """
 
     frame: Frame
-
-    @property
-    def periodic(self) -> P:
-        raise NotImplementedError
+    periodic: P = field(static=True)
 
     @property
     def vectors(self) -> Array:
@@ -451,8 +462,62 @@ class Cell[P: tuple[bool, bool, bool]](Sliceable):
     ) -> Array:
         return _wrap(self.frame, self.periodic, r, input_space, output_space)
 
+    def fold(self, r_frac: Array) -> tuple[Array, Array]:
+        """Fold fractional coords into ``[0, 1)`` on periodic axes; non-periodic
+        axes pass through unchanged.
+
+        Returns ``(folded, in_cell)`` where ``in_cell`` is a per-particle
+        mask, ``True`` where the folded coords lie in ``[0, 1)`` on every
+        axis. For fully-periodic cells, ``in_cell`` is trivially ``True``
+        after folding; for cells with non-periodic axes, particles that
+        leaked out of the box on those axes are flagged ``False``.
+
+        Used by neighbor-list spatial hashing; complementary to
+        [`wrap`][kups.core.cell.Cell.wrap] which uses the ``[-0.5, 0.5)``
+        convention.
+        """
+        folded = jnp.where(jnp.array(self.periodic), r_frac % 1, r_frac)
+        in_cell = jnp.all((folded >= 0) & (folded < 1), axis=-1)
+        return folded, in_cell
+
+    def minimum_image_shifts(self, deltas: Array) -> Array:
+        """Per-axis minimum-image shifts for fractional separations.
+
+        Returns ``round(deltas)`` on periodic axes (the closest integer
+        cell offset that wraps the separation to its minimum image) and
+        ``0`` on non-periodic axes.
+        """
+        return jnp.where(jnp.array(self.periodic), jnp.round(deltas), 0.0)
+
     def __mul__(self, other: Array | float | int) -> Self:
         return bind(self, lambda c: c.frame).set(self.frame * other)
+
+    @overload
+    @staticmethod
+    def from_pbc(frame: Frame, pbc: Periodic3D) -> PeriodicCell: ...
+    @overload
+    @staticmethod
+    def from_pbc(frame: Frame, pbc: Vacuum) -> VacuumCell: ...
+    @overload
+    @staticmethod
+    def from_pbc[Q: tuple[bool, bool, bool]](frame: Frame, pbc: Q) -> Cell[Q]: ...
+    @staticmethod
+    def from_pbc(frame: Frame, pbc: tuple[bool, bool, bool]) -> Cell[Any]:
+        """Construct the cell flavor matching ``pbc``.
+
+        Returns [`PeriodicCell`][kups.core.cell.PeriodicCell] for
+        ``(True, True, True)``, [`VacuumCell`][kups.core.cell.VacuumCell]
+        for ``(False, False, False)``, and a generic ``Cell[P]`` carrying
+        the runtime mask for slab and wire geometries (``P`` is inferred
+        from the literal tuple).
+        """
+        match pbc:
+            case (True, True, True):
+                return PeriodicCell(frame)
+            case (False, False, False):
+                return VacuumCell(frame)
+            case _:
+                return Cell(frame, periodic=pbc)
 
 
 @dataclass
@@ -465,9 +530,7 @@ class PeriodicCell(Cell[Periodic3D]):
     Ewald summation requires this cell type.
     """
 
-    @property
-    def periodic(self) -> Periodic3D:
-        return (True, True, True)
+    periodic: Periodic3D = field(default=(True, True, True), init=False, static=True)
 
 
 @dataclass
@@ -481,9 +544,7 @@ class VacuumCell(Cell[Vacuum]):
     neighbor-list machinery needs a spatial-partitioning hint.
     """
 
-    @property
-    def periodic(self) -> Vacuum:
-        return (False, False, False)
+    periodic: Vacuum = field(default=(False, False, False), init=False, static=True)
 
 
 def min_multiplicity(cell: Cell, cutoff: float | Array) -> Array:

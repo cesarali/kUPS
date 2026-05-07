@@ -309,13 +309,6 @@ class TestCellIsinstance:
 
 
 class TestCellConstructors:
-    """Runtime behavior of PeriodicCell / VacuumCell.
-
-    Type-level discrimination — that ``PeriodicCell`` is rejected where
-    ``VacuumCell`` is expected and vice versa — is enforced by pyright at
-    static-analysis time. Here we just lock in the runtime semantics.
-    """
-
     def test_periodic_default_orthogonal(self):
         c = PeriodicCell(OrthogonalFrame(jnp.array([10.0, 10.0, 10.0])))
         assert c.periodic == (True, True, True)
@@ -333,11 +326,11 @@ class TestCellConstructors:
         assert c.periodic == (False, False, False)
         npt.assert_allclose(c.vectors, jnp.eye(3) * 2.0)
 
-    def test_periodic_rejects_periodic_kwarg(self):
-        """`periodic` is a read-only property; constructor takes only `frame`."""
-        frame = OrthogonalFrame(jnp.array([10.0, 10.0, 10.0]))
-        with pytest.raises(TypeError):
-            PeriodicCell(frame, (False, False, False))  # pyright: ignore[reportCallIssue]
+    @pytest.mark.parametrize("cls", [PeriodicCell, VacuumCell])
+    def test_periodic_arg_is_rejected(self, cls):
+        frame = OrthogonalFrame(jnp.array([1.0, 1.0, 1.0]))
+        with pytest.raises(TypeError, match="periodic"):
+            cls(frame, periodic=(True, False, True))  # type: ignore[call-arg]
 
 
 class TestTypeGuards:
@@ -609,25 +602,16 @@ class TestPeriodicityAcrossFrames:
 
 
 class TestPytreeAndJIT:
-    def test_periodic_property_is_not_a_pytree_leaf(self):
-        """Design invariant: `periodic` is a `@property`, not a dataclass
-        field. If it became a leaf, `jax.tree.map` would try to rewrite it
-        and the literal-typed read-only contract would break."""
+    def test_periodic_is_static_aux_not_a_leaf(self):
         cell = PeriodicCell(OrthogonalFrame(jnp.array([10.0, 10.0, 10.0])))
         assert len(jax.tree.leaves(cell)) == 1
 
     def test_jit_traces_through_wrap(self):
-        """JAX must be able to trace through Cell.wrap, which closes over
-        `self.periodic`. This is the JIT regression that broke when periodic
-        was a dataclass field with `static=True` plumbed through `_wrap`."""
         cell = PeriodicCell(OrthogonalFrame(jnp.array([10.0, 10.0, 10.0])))
         r = jnp.array([12.0, -3.0, 25.0])
         npt.assert_allclose(jax.jit(cell.wrap)(r), cell.wrap(r), atol=1e-6)
 
     def test_tree_map_preserves_concrete_subclass(self):
-        """`jax.tree.map` returns the same concrete cell class — not a bare
-        `Cell` — so downstream `isinstance(c, VacuumCell)` keeps working
-        after pytree round-trips."""
         cell = VacuumCell(OrthogonalFrame(jnp.array([10.0, 10.0, 10.0])))
         scaled = jax.tree.map(lambda x: x * 2, cell)
         assert isinstance(scaled, VacuumCell)
