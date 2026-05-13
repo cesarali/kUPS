@@ -348,6 +348,50 @@ class TestDataclassSubclassPinsInheritedField:
         assert isinstance(p2, Pinned)
         assert p2.mask == (True, True)
 
+    @staticmethod
+    def _pinned_pair():
+        # `PeriodicCell` / `VacuumCell` pattern: a parent with a static
+        # `mask` field, two subclasses pinning it to different `init=False`
+        # defaults.
+        @dataclass
+        class Parent:
+            data: jax.Array
+            mask: tuple[bool, bool] = field(static=True)
+
+        @dataclass
+        class A(Parent):
+            mask: tuple[bool, bool] = field(
+                default=(True, True), init=False, static=True
+            )
+
+        @dataclass
+        class B(Parent):
+            mask: tuple[bool, bool] = field(
+                default=(False, False), init=False, static=True
+            )
+
+        return A, B
+
+    def test_lax_cond_rejects_mismatched_sibling_subclass_branches(self):
+        # `lax.cond` compares branch output treedefs by eq during tracing.
+        # If sibling subclasses with distinct pinned defaults produce
+        # eq-equal treedefs, cond silently accepts mismatched branches and
+        # returns the wrong concrete type (`cond(False, ..., ...)`
+        # producing an A instance when the false branch was picked).
+        A, B = self._pinned_pair()
+        a, b = A(jnp.zeros(3)), B(jnp.zeros(3))
+        with pytest.raises(TypeError, match="pytree structure"):
+            jax.lax.cond(True, lambda: a, lambda: b)
+
+    def test_lax_scan_rejects_mismatched_carry_subclass(self):
+        # Same surface as cond: `scan` compares the init carry's treedef
+        # against the body's output carry. With eq-equal treedefs, scan
+        # silently accepts and produces a final carry of the wrong type.
+        A, B = self._pinned_pair()
+        a, b = A(jnp.zeros(3)), B(jnp.zeros(3))
+        with pytest.raises(TypeError, match="(carry|pytree structure)"):
+            jax.lax.scan(lambda _c, _x: (a, None), b, None, length=2)  # type: ignore[arg-type]
+
 
 class TestSequentialVmapWithVjp:
     """Tests for sequential_vmap_with_vjp function."""

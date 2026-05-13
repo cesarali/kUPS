@@ -725,23 +725,42 @@ def dataclass[T: type](
             weakref_slot=weakref_slot,
         )  # type: ignore
         dcls._jax_dataclass = True
-        # `init=False` fields are excluded from pytree registration: they are
-        # set from defaults in __init__ and are not part of the constructor
-        # surface, so they neither carry traced data nor static aux that the
-        # caller can vary. JAX's auto-detection includes them and then errors,
-        # so we partition explicitly.
-        init_fields = [f for f in dataclasses.fields(dcls) if f.init]
-        data_fields = [
-            f.name for f in init_fields if not f.metadata.get("static", False)
-        ]
-        meta_fields = [f.name for f in init_fields if f.metadata.get("static", False)]
-        drop_fields = [f.name for f in dataclasses.fields(dcls) if not f.init]
-        jax.tree_util.register_dataclass(
-            dcls,
-            data_fields=data_fields,
-            meta_fields=meta_fields,
-            drop_fields=drop_fields,
+        # All static fields land in aux_data so sibling subclasses pinning
+        # the same field to different `init=False` defaults (e.g.
+        # PeriodicCell vs VacuumCell) produce distinct treedefs; the
+        # unflatten skips `init=False` fields and lets their class-level
+        # default re-apply via `__init__`.
+        all_fields = dataclasses.fields(dcls)
+        data_fields = tuple(
+            f.name for f in all_fields if f.init and not f.metadata.get("static", False)
         )
+        meta_fields = tuple(
+            f.name for f in all_fields if f.metadata.get("static", False)
+        )
+        init_meta_fields = tuple(
+            f.name for f in all_fields if f.init and f.metadata.get("static", False)
+        )
+
+        def _flatten_with_keys(x, _data=data_fields, _meta=meta_fields):
+            children = tuple(
+                (jax.tree_util.GetAttrKey(n), getattr(x, n)) for n in _data
+            )
+            aux = tuple(getattr(x, n) for n in _meta)
+            return children, aux
+
+        def _unflatten(
+            meta,
+            data,
+            _cls=dcls,
+            _data=data_fields,
+            _meta=meta_fields,
+            _init_meta=frozenset(init_meta_fields),
+        ):
+            kwargs = dict(zip(_data, data))
+            kwargs.update((n, v) for n, v in zip(_meta, meta) if n in _init_meta)
+            return _cls(**kwargs)
+
+        jax.tree_util.register_pytree_with_keys(dcls, _flatten_with_keys, _unflatten)
         return dcls
 
     if cls is None:
