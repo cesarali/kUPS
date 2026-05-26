@@ -800,9 +800,24 @@ class ExchangeMove[State](MonteCarloMove[State, ExchangeChanges]):
         n_sys = self.positions(state).data.system.num_labels
         return Table.arange(jnp.zeros((n_sys,)), label=SystemId)
 
-    def _propose_insertion(
+    def propose_insertion(
         self, key: Array, state: State, /
     ) -> tuple[ExchangeChanges, LogProbabilityRatio]:
+        """Propose inserting one motif at a uniformly random position per system.
+
+        The returned ``LogProbabilityRatio`` is zero per system: the volume /
+        particle-count factor of the asymmetric insertion proposal is folded
+        into the fugacity term of
+        :func:`~kups.mcmc.probability.make_muvt_probability_ratio`.
+
+        Args:
+            key: JAX PRNG key.
+            state: Current simulation state.
+
+        Returns:
+            ``(changes, log_ratio)`` where ``changes`` describes the inserted
+            motif and ``log_ratio`` is per-system zeros.
+        """
         changes = insert_random_motif(
             key,
             self.motifs(state),
@@ -813,9 +828,24 @@ class ExchangeMove[State](MonteCarloMove[State, ExchangeChanges]):
         )
         return changes, self._zero_ratio(state)
 
-    def _propose_deletion(
+    def propose_deletion(
         self, key: Array, state: State, /
     ) -> tuple[ExchangeChanges, LogProbabilityRatio]:
+        """Propose deleting a uniformly random motif per system.
+
+        The returned ``LogProbabilityRatio`` is zero per system: the volume /
+        particle-count factor of the asymmetric deletion proposal is folded
+        into the fugacity term of
+        :func:`~kups.mcmc.probability.make_muvt_probability_ratio`.
+
+        Args:
+            key: JAX PRNG key.
+            state: Current simulation state.
+
+        Returns:
+            ``(changes, log_ratio)`` where ``changes`` describes the deleted
+            motif and ``log_ratio`` is per-system zeros.
+        """
         changes = delete_random_motif(
             key,
             self.motifs(state),
@@ -830,7 +860,7 @@ class ExchangeMove[State](MonteCarloMove[State, ExchangeChanges]):
     ) -> tuple[ExchangeChanges, LogProbabilityRatio]:
         chain = key_chain(key)
         changes, log_ratio, _ = propose_mixed(
-            next(chain), state, (self._propose_insertion, self._propose_deletion)
+            next(chain), state, (self.propose_insertion, self.propose_deletion)
         )
         return changes, log_ratio
 
