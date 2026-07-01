@@ -35,6 +35,8 @@ dist/
 lib/
 
 # molsim
+results/
+pdfs/
 *.h5
 *.pkl
 .DS_Store
@@ -56,4 +58,15 @@ docs/reference
 *.model
 *.log
 *.dat
-
+*.bibtex
+*.densities
+*.densitiesinfo
+*.engrad
+*.err
+*.gbw
+*.ges
+*.hess
+*.opt
+*.out
+*.property.txt
+*.tmp

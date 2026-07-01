@@ -1,0 +1,9 @@
+! B3LYP D3BJ def2-SVP TightSCF EnGrad
+
+%pal
+  nprocs 1
+end
+
+%maxcore 1000
+
+* xyzfile 0 1 ../molecules/r2_near_attack.xyz

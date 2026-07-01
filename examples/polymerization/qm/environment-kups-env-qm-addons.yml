@@ -1,0 +1,9 @@
+name: kups-env
+channels:
+  - conda-forge
+dependencies:
+  - rdkit
+  - pandas
+  - xtb
+  - crest
+  - openbabel

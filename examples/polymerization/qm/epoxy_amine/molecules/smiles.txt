@@ -1,0 +1,3 @@
+glycidyl_methyl_ether COCC1CO1
+methylamine CN
+ring_opened_product COCC(O)CNC

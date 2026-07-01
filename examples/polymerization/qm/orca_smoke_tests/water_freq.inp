@@ -1,0 +1,9 @@
+! B3LYP def2-SVP TightSCF Freq
+
+%pal
+  nprocs 1
+end
+
+%maxcore 1000
+
+* xyzfile 0 1 water_opt.xyz
