@@ -1,5 +1,4 @@
 #!/bin/bash
-set -euo pipefail
 ###############################################################################
 # orca_epoxy_amine_smoke.job - run the minimum epoxy-amine ORCA EnGrad fixture
 ###############################################################################
@@ -15,6 +14,8 @@ set -euo pipefail
 #SBATCH --error=/home/ojedamarin/Projects/Polymerization/kUPS/slurm-%A_%a.err
 #SBATCH --array=0-0
 ###############################################################################
+
+set -euo pipefail
 
 # Proxies are harmless for this ORCA-only job and match the cluster convention.
 export http_proxy=http://proxy2.uni-potsdam.de:3128
@@ -86,6 +87,23 @@ echo "[smoke] outputs=${RUN_DIR}/*.out ${RUN_DIR}/*.engrad ${RUN_DIR}/*.time"
 echo "[env] orca_bin=${ORCA_BIN}"
 echo "[env] type_orca=$(type -t orca || true)"
 echo "[env] start_utc=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
+INPUT_FILE="$(find "${RUN_DIR}" -maxdepth 1 -type f -name '*.inp' | sort | head -n 1)"
+INPUT_NPROCS="$(
+  awk '
+    BEGIN { in_pal = 0 }
+    /^[[:space:]]*%pal([[:space:]]|$)/ { in_pal = 1; next }
+    in_pal && /^[[:space:]]*end([[:space:]]|$)/ { in_pal = 0; next }
+    in_pal && tolower($1) == "nprocs" { print $2; exit }
+  ' "${INPUT_FILE}"
+)"
+INPUT_NPROCS="${INPUT_NPROCS:-1}"
+SLURM_NTASKS="${SLURM_NTASKS:-1}"
+if (( INPUT_NPROCS > SLURM_NTASKS )); then
+  echo "[env] ORCA input requests nprocs=${INPUT_NPROCS}, but Slurm allocated SLURM_NTASKS=${SLURM_NTASKS}" >&2
+  echo "[env] submit this script with its #SBATCH directives intact, or lower %pal nprocs in ${INPUT_FILE}" >&2
+  exit 1
+fi
 
 ORCA_BIN="${ORCA_BIN}" bash "${REPO_ROOT}/scripts/polymerization/qm/run_orca_smoke_job.sh" "${RUN_DIR}"
 
