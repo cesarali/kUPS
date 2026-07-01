@@ -114,7 +114,8 @@ For one R2 job, keep:
 
 ```text
 #SBATCH --array=0-0
-#SBATCH --cpus-per-task=10
+#SBATCH --ntasks=10
+#SBATCH --cpus-per-task=1
 #SBATCH --mem=24G
 #SBATCH --time=00:30:00
 ```
