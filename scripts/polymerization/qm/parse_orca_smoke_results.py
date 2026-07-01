@@ -14,8 +14,14 @@ import numpy as np
 ENERGY_RE = re.compile(r"FINAL SINGLE POINT ENERGY\s+(-?\d+\.\d+)")
 NORMAL_RE = re.compile(r"ORCA TERMINATED NORMALLY")
 REAL_TIME_RE = re.compile(r"real\s+(\d+(?:\.\d+)?)")
-REPO_ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_ROOT = REPO_ROOT / "results" / "qm" / "epoxy_amine_smoke" / "cluster_runs"
+REPO_ROOT = Path(__file__).resolve().parents[3]
+DEFAULT_ROOT = (
+    REPO_ROOT
+    / "test"
+    / "polymerization"
+    / "fixtures"
+    / "epoxy_amine_orca"
+)
 
 
 def parse_time(path: Path) -> float | None:

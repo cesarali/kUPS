@@ -5,9 +5,9 @@ from rdkit import Chem
 from rdkit.Chem import AllChem
 
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
-EXAMPLE_ROOT = REPO_ROOT / "examples" / "qm" / "epoxy_amine"
-MOLECULES = EXAMPLE_ROOT / "molecules"
+REPO_ROOT = Path(__file__).resolve().parents[3]
+FIXTURE_ROOT = REPO_ROOT / "test" / "polymerization" / "fixtures"
+PRE_ORCA_ROOT = FIXTURE_ROOT / "epoxy_amine_pre_orca"
 
 TARGET_NC_DISTANCE_A = 2.4
 
@@ -60,28 +60,8 @@ def write_xyz(path: Path, symbols: list[str], coords: np.ndarray, comment: str) 
     path.write_text("\n".join(lines) + "\n")
 
 
-def write_orca_input(path: Path, xyz_name: str) -> None:
-    path.write_text(
-        "\n".join(
-            [
-                "! B3LYP D3BJ def2-SVP TightSCF EnGrad",
-                "",
-                "%pal",
-                "  nprocs 1",
-                "end",
-                "",
-                "%maxcore 1000",
-                "",
-                f"* xyzfile 0 1 molecules/{xyz_name}",
-                "",
-            ]
-        )
-    )
-
-
 def main() -> None:
-    MOLECULES.mkdir(parents=True, exist_ok=True)
-    EXAMPLE_ROOT.mkdir(parents=True, exist_ok=True)
+    PRE_ORCA_ROOT.mkdir(parents=True, exist_ok=True)
 
     epoxy = embed_and_optimize("COCC1CO1", seed=17)
     amine = embed_and_optimize("CN", seed=23)
@@ -114,8 +94,7 @@ def main() -> None:
         f"attacked_c_index={attacked_c}; nitrogen_index={n_global}; "
         f"N_C_distance_A={nc_distance:.4f}"
     )
-    write_xyz(MOLECULES / xyz_name, symbols, combined_coords, comment)
-    write_orca_input(EXAMPLE_ROOT / "r2_b3lyp_svp_engrad.inp", xyz_name)
+    write_xyz(PRE_ORCA_ROOT / xyz_name, symbols, combined_coords, comment)
 
     metadata = "\n".join(
         [
@@ -124,10 +103,18 @@ def main() -> None:
             "",
         ]
     )
-    (MOLECULES / "r2_near_attack_metadata.csv").write_text(metadata)
+    smiles = "\n".join(
+        [
+            "glycidyl_methyl_ether COCC1CO1",
+            "methylamine CN",
+            "ring_opened_product COCC(O)CNC",
+            "",
+        ]
+    )
+    (PRE_ORCA_ROOT / "smiles.txt").write_text(smiles)
+    (PRE_ORCA_ROOT / "r2_near_attack_metadata.csv").write_text(metadata)
 
-    print(f"Wrote {MOLECULES / xyz_name}")
-    print(f"Wrote {EXAMPLE_ROOT / 'r2_b3lyp_svp_engrad.inp'}")
+    print(f"Wrote {PRE_ORCA_ROOT / xyz_name}")
     print(f"N...C distance: {nc_distance:.4f} A")
 
 

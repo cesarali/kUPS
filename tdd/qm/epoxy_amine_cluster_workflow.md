@@ -39,14 +39,19 @@ ORCA 6.x
 OpenMPI runtime compatible with the ORCA build
 /usr/bin/time or equivalent timing command
 bash
-Python 3 for parsing results
-numpy for parsing gradient norms
 ```
 
 Required only if generating geometries on the cluster:
 
 ```text
 RDKit
+```
+
+Required only if parsing results on the cluster:
+
+```text
+Python 3
+numpy
 ```
 
 If geometries and ORCA inputs are generated locally first, the cluster does not need RDKit for the ORCA run itself.
@@ -67,21 +72,21 @@ Those are useful for conformers, pre-optimization, scans, and conversion, but th
 From the repo root:
 
 ```bash
-conda run -n kups-env python scripts/qm/prepare_epoxy_amine_orca_smoke.py \
+conda run -n kups-env python scripts/polymerization/qm/prepare_epoxy_amine_orca_smoke.py \
   --include R2 \
-  --out results/qm/epoxy_amine_smoke/cluster_runs \
-  --nprocs 1 \
-  --maxcore 1000
+  --out test/polymerization/fixtures/epoxy_amine_orca \
+  --nprocs 10 \
+  --maxcore 1500
 ```
 
 To prepare the three cheap labels after R2 succeeds:
 
 ```bash
-conda run -n kups-env python scripts/qm/prepare_epoxy_amine_orca_smoke.py \
+conda run -n kups-env python scripts/polymerization/qm/prepare_epoxy_amine_orca_smoke.py \
   --include R1,R2,P1 \
-  --out results/qm/epoxy_amine_smoke/cluster_runs \
-  --nprocs 1 \
-  --maxcore 1000
+  --out test/polymerization/fixtures/epoxy_amine_orca \
+  --nprocs 10 \
+  --maxcore 1500
 ```
 
 The generated ORCA inputs contain inline coordinates, so each job directory is portable.
@@ -97,20 +102,20 @@ export ORCA_BIN=/path/to/orca
 Run:
 
 ```bash
-bash scripts/qm/run_orca_smoke_job.sh \
-  results/qm/epoxy_amine_smoke/cluster_runs/r2_near_attack_svp_engrad
+bash scripts/polymerization/qm/run_orca_smoke_job.sh \
+  test/polymerization/fixtures/epoxy_amine_orca/r2_near_attack_svp_engrad
 ```
 
 ## Run with SLURM
 
-Edit `scripts/qm/slurm_orca_smoke_array.sh` for your cluster account/partition/modules.
+Use `scripts/Potsdam/orca_epoxy_amine_smoke.job` for the Potsdam cluster setup from `tdd/qm/ORCA_USAGE.md`. The generic fallback is `scripts/polymerization/qm/slurm_orca_smoke_array.sh`.
 
 For one R2 job, keep:
 
 ```text
 #SBATCH --array=0-0
-#SBATCH --cpus-per-task=1
-#SBATCH --mem=2G
+#SBATCH --cpus-per-task=10
+#SBATCH --mem=24G
 #SBATCH --time=00:30:00
 ```
 
@@ -118,8 +123,8 @@ Submit:
 
 ```bash
 export ORCA_BIN=/path/to/orca
-export SMOKE_ROOT=$PWD/results/qm/epoxy_amine_smoke/cluster_runs
-sbatch scripts/qm/slurm_orca_smoke_array.sh
+export SMOKE_ROOT=$PWD/test/polymerization/fixtures/epoxy_amine_orca
+sbatch scripts/Potsdam/orca_epoxy_amine_smoke.job
 ```
 
 For three jobs, regenerate with `--include R1,R2,P1` and change:
@@ -131,14 +136,14 @@ For three jobs, regenerate with `--include R1,R2,P1` and change:
 ## Parse results
 
 ```bash
-conda run -n kups-env python scripts/qm/parse_orca_smoke_results.py \
-  results/qm/epoxy_amine_smoke/cluster_runs
+conda run -n kups-env python scripts/polymerization/qm/parse_orca_smoke_results.py \
+  test/polymerization/fixtures/epoxy_amine_orca
 ```
 
 This writes:
 
 ```text
-results/qm/epoxy_amine_smoke/cluster_runs/results.csv
+test/polymerization/fixtures/epoxy_amine_orca/results.csv
 ```
 
 ## Local reference result

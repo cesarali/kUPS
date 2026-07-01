@@ -14,9 +14,9 @@ set -euo pipefail
 # Edit these for your cluster, or set them before sbatch.
 # Example:
 #   export ORCA_BIN=/path/to/orca
-#   export SMOKE_ROOT=$PWD/results/qm/epoxy_amine_smoke/cluster_runs
+#   export SMOKE_ROOT=$PWD/test/polymerization/fixtures/epoxy_amine_orca
 ORCA_BIN="${ORCA_BIN:-orca}"
-SMOKE_ROOT="${SMOKE_ROOT:-$PWD/results/qm/epoxy_amine_smoke/cluster_runs}"
+SMOKE_ROOT="${SMOKE_ROOT:-$PWD/test/polymerization/fixtures/epoxy_amine_orca}"
 
 mapfile -t JOB_DIRS < <(find "$SMOKE_ROOT" -mindepth 1 -maxdepth 1 -type d | sort)
 JOB_DIR="${JOB_DIRS[$SLURM_ARRAY_TASK_ID]}"

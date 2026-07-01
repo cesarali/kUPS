@@ -109,7 +109,7 @@ The first local run used the conservative tested keyword line above. A more elab
 1. Build glycidyl methyl ether and methylamine with RDKit.
 2. Generate a near-attack R2 complex with N...C distance near 2.4 A.
 3. Write `r2_near_attack.xyz`.
-4. Write `r2_b3lyp_svp_engrad.inp`.
+4. Write the cluster-ready `r2_near_attack_svp_engrad.inp`.
 5. Run the ORCA `EnGrad` job.
 6. Confirm normal termination and an `.engrad` file.
 7. Record wall time, output size, final energy, and maximum force magnitude.
@@ -193,45 +193,42 @@ The important result is that ORCA accepted the N-C bond constraint and preserved
 
 ## Directory layout
 
-Use repo-local scripts and examples for smoke-test definitions, with generated outputs under ignored `results/`:
+Use repo-local scripts and test fixtures for smoke-test definitions. The first portable ORCA input lives under `test/polymerization/fixtures` so it can be copied to the cluster directly:
 
 ```text
-scripts/qm/
+scripts/polymerization/qm/
   generate_epoxy_amine_r2_near_attack.py
   prepare_epoxy_amine_orca_smoke.py
   run_orca_smoke_job.sh
   parse_orca_smoke_results.py
   slurm_orca_smoke_array.sh
-examples/qm/epoxy_amine/
-  molecules/
+scripts/Potsdam/
+  orca_epoxy_amine_smoke.job
+test/polymerization/fixtures/
+  epoxy_amine_pre_orca/
     smiles.txt
     r2_near_attack.xyz
-  r2_b3lyp_svp_engrad.inp
-results/qm/epoxy_amine_smoke/
-  cluster_runs/
+    r2_near_attack_metadata.csv
+  epoxy_amine_orca/
     manifest.csv
     r2_near_attack_svp_engrad/
       r2_near_attack_svp_engrad.inp
       r2_near_attack_svp_engrad.xyz
-  orca_outputs/
-  processed_labels/
-  timing/
-    timing_table.csv
 ```
 
-Large ORCA outputs stay under ignored `results/` unless they are later curated into a structured dataset.
+Large ORCA outputs stay ignored (`*.out`, `*.engrad`, `*.gbw`, and related files are ignored) unless they are later curated into a structured dataset.
 
 For cluster use, start with:
 
 ```bash
-conda run -n kups-env python scripts/qm/prepare_epoxy_amine_orca_smoke.py \
+conda run -n kups-env python scripts/polymerization/qm/prepare_epoxy_amine_orca_smoke.py \
   --include R2 \
-  --out results/qm/epoxy_amine_smoke/cluster_runs \
-  --nprocs 1 \
-  --maxcore 1000
+  --out test/polymerization/fixtures/epoxy_amine_orca \
+  --nprocs 10 \
+  --maxcore 1500
 ```
 
-Then transfer or run `cluster_runs/r2_near_attack_svp_engrad` with ORCA. The generated `.inp` contains inline coordinates and does not require RDKit at run time.
+Then transfer or run `test/polymerization/fixtures/epoxy_amine_orca/r2_near_attack_svp_engrad` with ORCA. The generated `.inp` contains inline coordinates and does not require RDKit at run time.
 
 The cluster-side minimum installation for the first label is ORCA plus its OpenMPI/runtime dependencies. RDKit, xTB, CREST, ASE, and Open Babel are needed for geometry generation and later workflow expansion, not for running this first prepared ORCA input.
 
@@ -297,8 +294,8 @@ The reduced model is not the final chemistry. Later stages must add:
 Generate the first R2 near-attack geometry and ORCA input:
 
 ```text
-examples/qm/epoxy_amine/molecules/r2_near_attack.xyz
-examples/qm/epoxy_amine/r2_b3lyp_svp_engrad.inp
+test/polymerization/fixtures/epoxy_amine_pre_orca/r2_near_attack.xyz
+test/polymerization/fixtures/epoxy_amine_orca/r2_near_attack_svp_engrad/r2_near_attack_svp_engrad.inp
 ```
 
 Do not run the ORCA job until the generated geometry has been inspected for atom count, N...C distance, and obvious overlaps.

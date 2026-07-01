@@ -77,14 +77,14 @@ ORCA TERMINATED NORMALLY
 - Repo-local Phase 3 smoke-test input:
 
 ```text
-examples/qm/orca_smoke_tests/water_sp.inp
+water_sp.inp created in /tmp/kups-qm-orca-smoke
 ```
 
 - Repo-local Phase 3 smoke-test command:
 
 ```bash
 cd /home/cesarali/Polymerization/kUPS/results/qm/orca_smoke_tests
-/home/cesarali/orca_6_1_0/orca ../../../examples/qm/orca_smoke_tests/water_sp.inp > water_sp.out
+/home/cesarali/orca_6_1_0/orca water_sp.inp > water_sp.out
 ```
 
 - Repo-local Phase 3 result:
@@ -97,14 +97,14 @@ ORCA TERMINATED NORMALLY
 - Repo-local Phase 4 optimization input:
 
 ```text
-examples/qm/orca_smoke_tests/water_opt.inp
+water_opt.inp created in /tmp/kups-qm-orca-smoke
 ```
 
 - Repo-local Phase 4 command:
 
 ```bash
 cd /home/cesarali/Polymerization/kUPS/results/qm/orca_smoke_tests
-/home/cesarali/orca_6_1_0/orca ../../../examples/qm/orca_smoke_tests/water_opt.inp > water_opt.out
+/home/cesarali/orca_6_1_0/orca water_opt.inp > water_opt.out
 ```
 
 - Repo-local Phase 4 result:
@@ -118,14 +118,14 @@ ORCA TERMINATED NORMALLY
 - Repo-local Phase 5 frequency input:
 
 ```text
-examples/qm/orca_smoke_tests/water_freq.inp
+water_freq.inp created in /tmp/kups-qm-orca-smoke
 ```
 
 - Repo-local Phase 5 command:
 
 ```bash
 cd /home/cesarali/Polymerization/kUPS/results/qm/orca_smoke_tests
-/home/cesarali/orca_6_1_0/orca ../../../examples/qm/orca_smoke_tests/water_freq.inp > water_freq.out
+/home/cesarali/orca_6_1_0/orca water_freq.inp > water_freq.out
 ```
 
 - Repo-local Phase 5 result:
@@ -139,14 +139,14 @@ ORCA TERMINATED NORMALLY
 - Repo-local Phase 6 methylamine optimization input:
 
 ```text
-examples/qm/orca_smoke_tests/methylamine_opt.inp
+methylamine_opt.inp created in /tmp/kups-qm-orca-smoke
 ```
 
 - Repo-local Phase 6 command:
 
 ```bash
 cd /home/cesarali/Polymerization/kUPS/results/qm/orca_smoke_tests
-/home/cesarali/orca_6_1_0/orca ../../../examples/qm/orca_smoke_tests/methylamine_opt.inp > methylamine_opt.out
+/home/cesarali/orca_6_1_0/orca methylamine_opt.inp > methylamine_opt.out
 ```
 
 - Repo-local Phase 6 result:
@@ -167,13 +167,13 @@ The Phase 4, Phase 5, and Phase 6 repo-local inputs are deliberately laptop-safe
 - Phase 7 add-on environment file:
 
 ```text
-examples/qm/environment-kups-env-qm-addons.yml
+docs/polymerization/environment-kups-env-qm-addons.yml
 ```
 
 - Phase 7 install command for the existing `kups-env`:
 
 ```bash
-conda env update -f /home/cesarali/Polymerization/kUPS/examples/qm/environment-kups-env-qm-addons.yml
+conda env update -f /home/cesarali/Polymerization/kUPS/docs/polymerization/environment-kups-env-qm-addons.yml
 ```
 
 - Phase 7 verification commands:
@@ -221,14 +221,14 @@ ORCA TERMINATED NORMALLY
 - Repo-local Phase 8 ASE + ORCA input:
 
 ```text
-scripts/qm/run_ase_orca_water.py
+scripts/polymerization/qm/run_ase_orca_water.py
 ```
 
 - Repo-local Phase 8 command:
 
 ```bash
 cd /home/cesarali/Polymerization/kUPS
-ORCA_COMMAND=/home/cesarali/orca_6_1_0/orca conda run -n kups-env python scripts/qm/run_ase_orca_water.py
+ORCA_COMMAND=/home/cesarali/orca_6_1_0/orca conda run -n kups-env python scripts/polymerization/qm/run_ase_orca_water.py
 ```
 
 - Repo-local Phase 8 result:
@@ -509,7 +509,7 @@ openbabel
 Install or update these packages with:
 
 ```bash
-conda env update -f /home/cesarali/Polymerization/kUPS/examples/qm/environment-kups-env-qm-addons.yml
+conda env update -f /home/cesarali/Polymerization/kUPS/docs/polymerization/environment-kups-env-qm-addons.yml
 ```
 
 or directly:
@@ -556,13 +556,13 @@ ASE should call the external ORCA executable. In this local setup, pass an expli
 Use the repo-local ASE smoke script:
 
 ```text
-scripts/qm/run_ase_orca_water.py
+scripts/polymerization/qm/run_ase_orca_water.py
 ```
 
 Run:
 
 ```bash
-ORCA_COMMAND=/home/cesarali/orca_6_1_0/orca conda run -n kups-env python scripts/qm/run_ase_orca_water.py
+ORCA_COMMAND=/home/cesarali/orca_6_1_0/orca conda run -n kups-env python scripts/polymerization/qm/run_ase_orca_water.py
 ```
 
 Success criteria:
@@ -594,12 +594,11 @@ r_NC = 3.0, 2.8, 2.6, ..., 1.5 Angstrom
 7. Store all inputs and outputs under:
 
 ```text
-data/qm_epoxy_amine/
-  raw_inputs/
-  raw_outputs/
-  geometries_extxyz/
-  scans/
-  metadata.csv
+test/polymerization/fixtures/epoxy_amine_orca/
+  manifest.csv
+  r2_near_attack_svp_engrad/
+    r2_near_attack_svp_engrad.inp
+    r2_near_attack_svp_engrad.xyz
 ```
 
 ## Troubleshooting notes

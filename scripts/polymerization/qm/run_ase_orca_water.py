@@ -6,7 +6,7 @@ from ase.calculators.orca import ORCA, OrcaProfile
 from ase.optimize import BFGS
 
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
+REPO_ROOT = Path(__file__).resolve().parents[3]
 workdir = REPO_ROOT / "results" / "qm" / "orca_smoke_tests" / "ase_orca_water_run"
 workdir.mkdir(parents=True, exist_ok=True)
 

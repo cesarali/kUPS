@@ -20,8 +20,14 @@ from rdkit import Chem
 from rdkit.Chem import AllChem
 
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_OUT = REPO_ROOT / "results" / "qm" / "epoxy_amine_smoke" / "cluster_runs"
+REPO_ROOT = Path(__file__).resolve().parents[3]
+DEFAULT_OUT = (
+    REPO_ROOT
+    / "test"
+    / "polymerization"
+    / "fixtures"
+    / "epoxy_amine_orca"
+)
 
 
 def embed_and_optimize(smiles: str, seed: int) -> Chem.Mol:

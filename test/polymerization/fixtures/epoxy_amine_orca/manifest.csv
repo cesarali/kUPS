@@ -1,0 +1,2 @@
+job_name,geometry_id,atoms,method_line,nprocs,maxcore_mb,description,attacked_c_index_zero_based,nitrogen_index_zero_based,n_c_distance_a
+r2_near_attack_svp_engrad,R2,21,B3LYP D3BJ def2-SVP TightSCF EnGrad,10,1500,near_attack,3,15,2.4
