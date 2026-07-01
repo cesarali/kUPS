@@ -27,6 +27,10 @@ site/
 # vscode
 *.code-workspace
 
+# ctags
+.tags
+tags
+
 # cmake
 build/
 
