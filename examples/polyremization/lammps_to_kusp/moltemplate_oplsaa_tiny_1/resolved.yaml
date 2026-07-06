@@ -1,0 +1,409 @@
+{
+  "atom_type_charges": {
+    "1": {
+      "charge_e": -0.24,
+      "source": "charges_file"
+    },
+    "2": {
+      "charge_e": 0.06,
+      "source": "charges_file"
+    }
+  },
+  "atoms": [
+    {
+      "charge_e": -0.24,
+      "charge_source": "charges_file",
+      "id": 1,
+      "molecule": 1,
+      "original_charge_e": 0.0,
+      "position_A": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "type": 1
+    },
+    {
+      "charge_e": 0.06,
+      "charge_source": "charges_file",
+      "id": 2,
+      "molecule": 1,
+      "original_charge_e": 0.0,
+      "position_A": [
+        0.0,
+        0.0,
+        1.089
+      ],
+      "type": 2
+    },
+    {
+      "charge_e": 0.06,
+      "charge_source": "charges_file",
+      "id": 3,
+      "molecule": 1,
+      "original_charge_e": 0.0,
+      "position_A": [
+        1.026719,
+        0.0,
+        -0.363
+      ],
+      "type": 2
+    },
+    {
+      "charge_e": 0.06,
+      "charge_source": "charges_file",
+      "id": 4,
+      "molecule": 1,
+      "original_charge_e": 0.0,
+      "position_A": [
+        -0.51336,
+        -0.889165,
+        -0.363
+      ],
+      "type": 2
+    },
+    {
+      "charge_e": 0.06,
+      "charge_source": "charges_file",
+      "id": 5,
+      "molecule": 1,
+      "original_charge_e": 0.0,
+      "position_A": [
+        -0.51336,
+        0.889165,
+        -0.363
+      ],
+      "type": 2
+    }
+  ],
+  "box": {
+    "pbc": [
+      true,
+      true,
+      true
+    ],
+    "xhi": 15.0,
+    "xlo": -15.0,
+    "yhi": 15.0,
+    "ylo": -15.0,
+    "zhi": 15.0,
+    "zlo": -15.0
+  },
+  "checker": {
+    "errors": [],
+    "missing_explicit_pair_coefficients": [
+      {
+        "status": "generated_by_mixing_later",
+        "types": [
+          1,
+          2
+        ]
+      }
+    ],
+    "readiness": {
+      "bonded_terms": "ready_input",
+      "dynamics": "not_implemented",
+      "electrostatics": "ready_input",
+      "format_import": "ready_input",
+      "lj_pair_matrix": "not_implemented",
+      "special_pair_scaling": "ready_input"
+    },
+    "special_pairs": {
+      "counts": {
+        "one_four": 0,
+        "one_three": 6,
+        "one_two": 4
+      },
+      "one_four": [],
+      "one_three": [
+        [
+          2,
+          3
+        ],
+        [
+          2,
+          4
+        ],
+        [
+          2,
+          5
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          3,
+          5
+        ],
+        [
+          4,
+          5
+        ]
+      ],
+      "one_two": [
+        [
+          1,
+          2
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          1,
+          4
+        ],
+        [
+          1,
+          5
+        ]
+      ]
+    },
+    "status": "pass",
+    "total_charge_e": 0.0,
+    "used_atom_types": [
+      1,
+      2
+    ],
+    "warnings": []
+  },
+  "coefficients": {
+    "angle": {
+      "1": {
+        "comment": null,
+        "converted_units": {
+          "k_eV_per_degree2": 0.0004359123421626379,
+          "k_eV_per_rad2": 1.4310158049,
+          "theta0_degree": 107.8
+        },
+        "k_kcal_per_mol_per_rad2": 33.0,
+        "raw_args": [
+          33.0,
+          107.8
+        ],
+        "style": "harmonic",
+        "theta0_degree": 107.8
+      }
+    },
+    "bond": {
+      "1": {
+        "comment": null,
+        "converted_units": {
+          "k_eV_per_A2": 14.743799202,
+          "r0_A": 1.09
+        },
+        "k_kcal_per_mol_per_A2": 340.0,
+        "r0_A": 1.09,
+        "raw_args": [
+          340.0,
+          1.09
+        ],
+        "style": "harmonic"
+      }
+    },
+    "dihedral": {},
+    "improper": {},
+    "pair": {
+      "1-1": {
+        "comment": null,
+        "converted_units": {
+          "epsilon_eV": 0.002601846918,
+          "sigma_A": 3.57
+        },
+        "epsilon_kcal_per_mol": 0.06,
+        "raw_args": [
+          0.06,
+          3.57
+        ],
+        "sigma_A": 3.57,
+        "style": "lj/charmm/coul/long",
+        "type_i": 1,
+        "type_j": 1
+      },
+      "2-2": {
+        "comment": null,
+        "converted_units": {
+          "epsilon_eV": 0.001300923459,
+          "sigma_A": 2.5
+        },
+        "epsilon_kcal_per_mol": 0.03,
+        "raw_args": [
+          0.03,
+          2.5
+        ],
+        "sigma_A": 2.5,
+        "style": "lj/charmm/coul/long",
+        "type_i": 2,
+        "type_j": 2
+      }
+    }
+  },
+  "counts": {
+    "angle_types": 1,
+    "angles": 6,
+    "atom_types": 2,
+    "atoms": 5,
+    "bond_types": 1,
+    "bonds": 4,
+    "dihedral_types": 0,
+    "dihedrals": 0,
+    "improper_types": 0,
+    "impropers": 0
+  },
+  "lammps_semantics": {
+    "angle_style": "harmonic",
+    "atom_style": "full",
+    "bond_style": "harmonic",
+    "dihedral_style": "opls",
+    "improper_style": "cvff",
+    "kspace_style": {
+      "accuracy": 0.0001,
+      "args": [
+        0.0001
+      ],
+      "name": "pppm"
+    },
+    "pair_modify": {
+      "mix": "geometric"
+    },
+    "pair_style": "lj/charmm/coul/long",
+    "pair_style_args": [
+      9.0,
+      11.0
+    ],
+    "special_bonds": {
+      "coul": [
+        0.0,
+        0.0,
+        0.5
+      ],
+      "lj": [
+        0.0,
+        0.0,
+        0.5
+      ]
+    },
+    "units": "real"
+  },
+  "masses": {
+    "1": {
+      "label": "138_bCT_aCT_dCT_iCT",
+      "mass_amu": 12.011
+    },
+    "2": {
+      "label": "140_bHC_aHC_dHC_iHC",
+      "mass_amu": 1.008
+    }
+  },
+  "source": {
+    "charges_file": "external/lammps_oplss/moltemplate_oplsaa_tiny/system.in.charges",
+    "data_file": "external/lammps_oplss/moltemplate_oplsaa_tiny/system.data",
+    "include_order": [
+      "init_file",
+      "data_file",
+      "settings_file",
+      "charges_file"
+    ],
+    "init_file": "external/lammps_oplss/moltemplate_oplsaa_tiny/system.in.init",
+    "settings_file": "external/lammps_oplss/moltemplate_oplsaa_tiny/system.in.settings"
+  },
+  "topology": {
+    "angles": [
+      {
+        "atoms": [
+          2,
+          1,
+          3
+        ],
+        "id": 1,
+        "type": 1
+      },
+      {
+        "atoms": [
+          2,
+          1,
+          4
+        ],
+        "id": 2,
+        "type": 1
+      },
+      {
+        "atoms": [
+          2,
+          1,
+          5
+        ],
+        "id": 3,
+        "type": 1
+      },
+      {
+        "atoms": [
+          3,
+          1,
+          4
+        ],
+        "id": 4,
+        "type": 1
+      },
+      {
+        "atoms": [
+          3,
+          1,
+          5
+        ],
+        "id": 5,
+        "type": 1
+      },
+      {
+        "atoms": [
+          4,
+          1,
+          5
+        ],
+        "id": 6,
+        "type": 1
+      }
+    ],
+    "bonds": [
+      {
+        "atoms": [
+          1,
+          2
+        ],
+        "id": 1,
+        "type": 1
+      },
+      {
+        "atoms": [
+          1,
+          3
+        ],
+        "id": 2,
+        "type": 1
+      },
+      {
+        "atoms": [
+          1,
+          4
+        ],
+        "id": 3,
+        "type": 1
+      },
+      {
+        "atoms": [
+          1,
+          5
+        ],
+        "id": 4,
+        "type": 1
+      }
+    ],
+    "dihedrals": [],
+    "impropers": []
+  },
+  "unsupported": {
+    "data_sections": [],
+    "settings_lines": []
+  }
+}

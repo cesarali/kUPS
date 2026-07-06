@@ -1,0 +1,18 @@
+include "system.in.init"
+
+read_data "system.data"
+
+include "system.in.settings"
+include "system.in.charges"
+
+thermo 1
+thermo_style custom step temp pe etotal press
+
+minimize 1.0e-6 1.0e-8 200 1000
+
+velocity all create 50.0 12345 mom yes rot yes dist gaussian
+fix int all nve
+timestep 0.25
+run 10
+
+write_data "tiny_oplsaa_methane_final.data"

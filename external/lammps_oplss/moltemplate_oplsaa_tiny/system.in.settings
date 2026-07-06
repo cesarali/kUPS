@@ -1,0 +1,6 @@
+pair_coeff 1 1 0.060 3.570
+pair_coeff 2 2 0.030 2.500
+bond_coeff 1 340. 1.09
+angle_coeff 1 33. 107.8
+set type 1 charge -0.24
+set type 2 charge 0.06

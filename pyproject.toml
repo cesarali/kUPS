@@ -80,6 +80,7 @@ kups_mcmc_rigid = "kups.application.simulations.mcmc_rigid:main"
 kups_mcmc_widom = "kups.application.simulations.mcmc_widom:main"
 kups_md_lj = "kups.application.simulations.md_lj:main"
 kups_relax_lj = "kups.application.simulations.relax_lj:main"
+kups_lammps_import = "kups.polymerization.lammps_import:main"
 
 [build-system]
 requires = ["hatchling"]

@@ -1,0 +1,44 @@
+# Best effort runnable approximation for:
+# external/lammps_oplss/moltemplate_oplsaa_tiny/run.in.tiny
+#
+# This file is intentionally LJ-only because the current shipped kUPS CLI
+# applications do not load LAMMPS full-atom topology or wire OPLS bonded,
+# Coulomb/Ewald, and special_bonds terms into one MD application.
+
+run:
+  out_file: results/lammps_to_kusp/tiny_oplsaa_methane_lj_only_nve/methane_lj_only_nve.h5
+  num_steps: 10
+  num_warmup_steps: 0
+  seed: 12345
+
+md:
+  temperature: 50.0
+  time_step: 0.25
+  friction_coefficient: 0.0
+  thermostat_time_constant: 1.0e10
+  target_pressure: 1.0
+  pressure_coupling_time: 1.0e10
+  compressibility: 4.5e-5
+  minimum_scale_factor: 1.0
+  integrator: "verlet"
+  initialize_momenta: true
+
+lj:
+  tail_correction: false
+  cutoff: 11.0
+  parameters:
+    # LAMMPS real-unit epsilon converted from kcal/mol to eV.
+    # C: pair_coeff 1 1 0.060 3.570
+    # H: pair_coeff 2 2 0.030 2.500
+    # kUPS labels CIF atoms by _atom_site_label, so each hydrogen label is
+    # listed explicitly with the same OPLS hydrogen LJ parameters.
+    C1: [3.570, 0.0026018469]
+    H2: [2.500, 0.00130092345]
+    H3: [2.500, 0.00130092345]
+    H4: [2.500, 0.00130092345]
+    H5: [2.500, 0.00130092345]
+  # Current kUPS LJ configs support Lorentz-Berthelot, while the LAMMPS OPLS-AA
+  # input requests pair_modify mix geometric.
+  mixing_rule: "lorentz_berthelot"
+
+inp_file: examples/polyremization/lammps_to_kusp/methane_oplsaa_tiny.cif

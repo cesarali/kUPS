@@ -1,0 +1,9 @@
+import "methane.lt"
+
+write_once("Data Boundary") {
+  -15.0 15.0 xlo xhi
+  -15.0 15.0 ylo yhi
+  -15.0 15.0 zlo zhi
+}
+
+methane = new Methane.move(0.0, 0.0, 0.0)

@@ -1,0 +1,38 @@
+{
+  "counts": {
+    "atoms": 5,
+    "bonds": 4,
+    "angles": 6,
+    "dihedrals": 0,
+    "impropers": 0,
+    "atom_types": 2,
+    "bond_types": 1,
+    "angle_types": 1
+  },
+  "box": {
+    "xlo": -15.0,
+    "xhi": 15.0,
+    "ylo": -15.0,
+    "yhi": 15.0,
+    "zlo": -15.0,
+    "zhi": 15.0
+  },
+  "charges_by_type": {
+    "1": -0.24,
+    "2": 0.06
+  },
+  "special_pair_counts": {
+    "one_two": 4,
+    "one_three": 6,
+    "one_four": 0
+  },
+  "lammps_semantics": {
+    "units": "real",
+    "atom_style": "full",
+    "pair_modify_mix": "geometric",
+    "special_bonds_lj": [0.0, 0.0, 0.5],
+    "special_bonds_coul": [0.0, 0.0, 0.5],
+    "kspace_style": "pppm",
+    "kspace_accuracy": 0.0001
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "purpose": "format_import_checker",
+  "active_checks": [
+    "counts",
+    "box",
+    "charge_overrides",
+    "coefficient_presence",
+    "unit_conversion_presence",
+    "topology_references",
+    "special_pair_classification",
+    "future_step_readiness"
+  ],
+  "inactive_checks": [
+    "energy_evaluation",
+    "force_evaluation",
+    "molecular_dynamics",
+    "LAMMPS_trajectory_matching"
+  ],
+  "numeric_tolerances": {
+    "charge_e": 1.0e-12,
+    "box_A": 1.0e-12,
+    "coefficient_conversion": 1.0e-10
+  }
+}
